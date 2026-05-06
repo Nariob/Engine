@@ -50,12 +50,13 @@ local objects = {}
 function Engine:AddObject(obj)
     obj.Anchored = true
     obj.CanCollide = false
+
     objects[obj] = {
-        Velocity = Vector3.new(0, 0, 0),
-        Gravity  = Vector3.new(0, 0, 0),
+        Velocity  = Vector3.new(0, 0, 0),
+        Gravity   = Vector3.new(0, 0, 0),
         Collision = false,
-        Floor = 0,
-        OnFloor = false
+        Floor     = nil,
+        OnFloor   = false
     }
 end
 
@@ -72,7 +73,21 @@ function Engine:SetCollision(obj, val)
 end
 
 function Engine:SetFloor(obj, val)
-    if objects[obj] then objects[obj].Floor = val end
+    if objects[obj] then
+        objects[obj].Floor = val
+
+        if val ~= nil then
+            local halfH = obj.Size.Y / 2
+            if obj.Position.Y - halfH < val then
+                obj.Position = Vector3.new(
+                    obj.Position.X,
+                    val + halfH,
+                    obj.Position.Z
+                )
+                objects[obj].Velocity = Vector3.new(0, 0, 0)
+            end
+        end
+    end
 end
 
 function Engine:IsOnFloor(obj)
@@ -89,7 +104,6 @@ RunService.Heartbeat:Connect(function(dt)
         obj.Position  = obj.Position  + data.Velocity * dt
     end
 
-    -- 2) Colisiones entre objetos
     for obj, data in pairs(objects) do
         if data.Collision then
             for other, _ in pairs(objects) do
@@ -105,23 +119,25 @@ RunService.Heartbeat:Connect(function(dt)
     end
 
     for obj, data in pairs(objects) do
-        local floorY = data.Floor
-        local halfH  = obj.Size.Y / 2
+        if data.Collision and data.Floor ~= nil then
+            local floorY = data.Floor
+            local halfH  = obj.Size.Y / 2
 
-        if obj.Position.Y - halfH <= floorY then
-            obj.Position = Vector3.new(
-                obj.Position.X,
-                floorY + halfH,
-                obj.Position.Z
-            )
+            if obj.Position.Y - halfH <= floorY then
+                obj.Position = Vector3.new(
+                    obj.Position.X,
+                    floorY + halfH,
+                    obj.Position.Z
+                )
 
-            if data.Velocity.Y < 0 then
-                data.Velocity = Vector3.new(data.Velocity.X, 0, data.Velocity.Z)
+                if data.Velocity.Y < 0 then
+                    data.Velocity = Vector3.new(data.Velocity.X, 0, data.Velocity.Z)
+                end
+
+                data.OnFloor = math.abs(data.Velocity.Y) < 0.5
+            else
+                data.OnFloor = false
             end
-
-            data.OnFloor = math.abs(data.Velocity.Y) < 0.5
-        else
-            data.OnFloor = false
         end
     end
 end)
