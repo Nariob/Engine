@@ -48,6 +48,8 @@ local Engine = {}
 local objects = {}
 
 function Engine:AddObject(obj)
+    obj.Anchored = true
+    obj.CanCollide = false
     objects[obj] = {
         Velocity = Vector3.new(0, 0, 0),
         Gravity  = Vector3.new(0, 0, 0),
